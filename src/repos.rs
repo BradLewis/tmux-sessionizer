@@ -53,6 +53,26 @@ pub fn find_repos(config: &Config) -> Result<HashMap<String, Vec<Session>>> {
             } else {
                 repos.insert(session.name.clone(), vec![session]);
             }
+        } else if file.path.is_file() {
+            let file_name = file
+                .path
+                .file_name()
+                .expect("The file name doesn't end in `..`")
+                .to_string()?;
+            if file_name != ".tms" {
+                continue;
+            }
+            let parent = file.path.parent().expect(".tms file has no parent");
+            let session_name = parent
+                .file_name()
+                .expect("The file name doesn't end in `..` for session")
+                .to_string()?;
+            let session = Session::new(session_name, SessionType::Bookmark(parent.to_path_buf()));
+            if let Some(list) = repos.get_mut(&session.name) {
+                list.push(session);
+            } else {
+                repos.insert(session.name.clone(), vec![session]);
+            }
         } else if file.path.is_dir() && file.depth > 0 {
             let read_dir = fs::read_dir(&file.path)
                 .change_context(TmsError::IoError)
